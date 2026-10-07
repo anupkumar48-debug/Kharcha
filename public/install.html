@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0f766e">
+<title>Install Kharcha</title>
+<style>
+  :root { --bg:#f4f6f8; --card:#fff; --ink:#0f172a; --ink2:#475569; --line:#e2e8f0; --accent:#0f766e; --soft:#ecfdf5; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#0b1120; --card:#131c2e; --ink:#e2e8f0; --ink2:#a3b1c6; --line:#233047; --accent:#2dd4bf; --soft:#10302c; } }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans","Noto Sans Devanagari",sans-serif; }
+  main { max-width:640px; margin:0 auto; padding:24px 16px 48px; }
+  .logo { width:64px; height:64px; border-radius:18px; background:#0f766e; color:#fff; display:grid; place-items:center; font-size:32px; font-weight:800; }
+  h1 { margin:14px 0 4px; font-size:26px; } h2 { font-size:18px; margin:0 0 10px; }
+  .muted { color:var(--ink2); }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px; margin-top:16px; }
+  ol { margin:0; padding-left:22px; } li { margin:6px 0; }
+  .btn { display:inline-block; background:#0f766e; color:#fff; text-decoration:none; font-weight:700; padding:12px 18px; border-radius:12px; margin:6px 8px 0 0; }
+  .btn.alt { background:transparent; color:var(--accent); border:1px solid var(--accent); }
+  .note { background:var(--soft); border-radius:10px; padding:10px 12px; font-size:14px; margin-top:12px; }
+  .hi { font-size:15px; }
+  .tabs { display:flex; gap:8px; margin-top:18px; }
+  .tabs a { flex:1; text-align:center; padding:8px; border:1px solid var(--line); border-radius:10px; color:var(--ink); text-decoration:none; background:var(--card); font-weight:600; }
+</style>
+</head>
+<body>
+<main>
+  <div class="logo">₹</div>
+  <h1>Kharcha</h1>
+  <div class="muted">Private expense, budget, EMI &amp; Udhar tracker for family and friends. Your data stays on your own phone.</div>
+  <div class="tabs"><a href="#en">English</a><a href="#hi">हिंदी</a></div>
+
+  <section id="en">
+    <div class="card">
+      <h2>📱 Android phone</h2>
+      <a class="btn" id="apk-link" href="APK_LINK_HERE">Download Kharcha.apk</a>
+      <ol style="margin-top:12px">
+        <li>Tap <b>Download Kharcha.apk</b> (or open the file sent on WhatsApp).</li>
+        <li>Tap <b>Open</b>. If Android says <i>"For your security, your phone is not allowed to install unknown apps"</i>, tap <b>Settings</b> → turn on <b>Allow from this source</b> → go back.</li>
+        <li>Tap <b>Install</b>. If Play Protect shows a warning, tap <b>More details → Install anyway</b> (the app is shared privately, not from Play Store).</li>
+        <li>Open Kharcha, type your name, and (optional) set a 4-digit PIN.</li>
+        <li>Allow notifications when asked, so you get EMI and Udhar reminders.</li>
+      </ol>
+      <div class="note">🔄 <b>Updating:</b> install the new APK over the old one. Do <b>not</b> uninstall first — uninstalling deletes your data.</div>
+    </div>
+
+    <div class="card">
+      <h2>💻 Laptop or iPhone</h2>
+      <a class="btn alt" href="./">Open Kharcha in the browser</a>
+      <ol style="margin-top:12px">
+        <li>Open the link in Chrome, Edge or Safari.</li>
+        <li>Chrome/Edge: menu ⋮ → <b>Install app</b>. iPhone Safari: Share → <b>Add to Home Screen</b>.</li>
+        <li>Data is saved in that browser on that device. Reminders show only while the app is open.</li>
+      </ol>
+    </div>
+
+    <div class="card">
+      <h2>💾 Keep your data safe</h2>
+      <ol>
+        <li><b>Android:</b> Kharcha saves a backup automatically every day you use it, in <b>Files → Documents → Kharcha</b>. This folder stays even if the app is uninstalled.</li>
+        <li><b>Laptop (Chrome/Edge):</b> Customize → <b>Choose backup folder</b> once. After a browser restart, tap <b>Continue auto-backup</b> when asked.</li>
+        <li>Once a month, copy the newest file to Google Drive (or <b>Customize → Backup now</b> → Drive) in case the phone is lost.</li>
+        <li>New phone? Install Kharcha, then <b>Customize → Restore from backup</b> and pick the file.</li>
+      </ol>
+    </div>
+  </section>
+
+  <section id="hi" class="hi">
+    <div class="card">
+      <h2>📱 एंड्रॉइड फ़ोन पर इंस्टॉल करें</h2>
+      <ol>
+        <li>ऊपर <b>Download Kharcha.apk</b> दबाएँ (या WhatsApp पर आई फ़ाइल खोलें)।</li>
+        <li><b>Open</b> दबाएँ। अगर "unknown apps" की चेतावनी आए तो <b>Settings</b> → <b>Allow from this source</b> चालू करें और वापस आएँ।</li>
+        <li><b>Install</b> दबाएँ। Play Protect चेतावनी दे तो <b>More details → Install anyway</b> दबाएँ।</li>
+        <li>ऐप खोलें, अपना नाम लिखें और चाहें तो 4 अंकों का PIN रखें।</li>
+        <li>EMI और उधार की याद दिलाने के लिए नोटिफ़िकेशन की अनुमति दें।</li>
+      </ol>
+      <div class="note">🔄 नया वर्ज़न आने पर नई APK पुरानी के ऊपर ही इंस्टॉल करें। पहले <b>अनइंस्टॉल न करें</b>, वरना आपका डेटा मिट जाएगा।</div>
+    </div>
+    <div class="card">
+      <h2>💾 डेटा सुरक्षित रखें</h2>
+      <ol>
+        <li>आपका सारा डेटा सिर्फ़ आपके फ़ोन में रहता है, कहीं और नहीं भेजा जाता।</li>
+        <li>ऐप हर दिन अपने-आप बैकअप <b>Files → Documents → Kharcha</b> फ़ोल्डर में सेव करता है। ऐप हटाने पर भी यह फ़ोल्डर रहता है।</li>
+        <li>महीने में एक बार सबसे नई फ़ाइल Google Drive में कॉपी कर लें, ताकि फ़ोन खोने पर भी डेटा सुरक्षित रहे।</li>
+        <li>नया फ़ोन लेने पर ऐप इंस्टॉल करें और <b>Customize → Restore from backup</b> से डेटा वापस लाएँ।</li>
+      </ol>
+    </div>
+  </section>
+
+  <p class="muted" style="font-size:13px;margin-top:20px">Kharcha does not read SMS, has no ads and sends nothing to any server. Shared privately among family and friends.</p>
+</main>
+</body>
+</html>
