@@ -45,6 +45,18 @@ jobs:
           fi
           ls
 
+      - name: Check all app files were uploaded
+        run: |
+          miss=0
+          for f in index.html vite.config.js capacitor.config.json src/main.jsx src/App.jsx src/styles.css \
+                   src/components/Charts.jsx src/components/ui.jsx \
+                   src/screens/Login.jsx src/screens/Home.jsx src/screens/Transactions.jsx src/screens/AddExpense.jsx \
+                   src/screens/SmsImport.jsx src/screens/Budget.jsx src/screens/Loans.jsx src/screens/Udhar.jsx \
+                   src/screens/Trends.jsx src/screens/Settings.jsx scripts/setup-android.mjs; do
+            [ -f "$f" ] || { echo "::error::MISSING FILE: $f  -> upload it from the unzipped kharcha folder (same place)"; miss=1; }
+          done
+          [ $miss = 0 ] && echo "All files present" || exit 1
+
       - run: npm install --no-audit --no-fund
       - run: npm test
       - run: npm run build
@@ -55,9 +67,18 @@ jobs:
         run: npx @capacitor/assets generate --android --iconBackgroundColor '#0f766e' --splashBackgroundColor '#0f766e' || true
 
       - name: Signing key
-        env: { KS: '${{ secrets.KEYSTORE_B64 }}' }
+        env:
+          KS: ${{ secrets.KEYSTORE_B64 }}
+          P1: ${{ secrets.KEYSTORE_PASSWORD }}
+          P2: ${{ secrets.KEY_ALIAS }}
+          P3: ${{ secrets.KEY_PASSWORD }}
         run: |
-          if [ -z "$KS" ]; then echo "::error::KEYSTORE_B64 secret missing. Run scripts/make-keystore.sh once and add the 4 secrets."; exit 1; fi
+          miss=""
+          [ -z "$KS" ] && miss="$miss KEYSTORE_B64"
+          [ -z "$P1" ] && miss="$miss KEYSTORE_PASSWORD"
+          [ -z "$P2" ] && miss="$miss KEY_ALIAS"
+          [ -z "$P3" ] && miss="$miss KEY_PASSWORD"
+          if [ -n "$miss" ]; then echo "::error::Missing secret(s):$miss  -> Settings > Secrets and variables > Actions > New repository secret (exact name, value from github-secrets.txt)"; exit 1; fi
           echo "$KS" | base64 -d > "$RUNNER_TEMP/upload.jks"
 
       - name: Build signed APK
