@@ -1,0 +1,11 @@
+{
+  "appId": "com.kharcha.app",
+  "appName": "Kharcha",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}
