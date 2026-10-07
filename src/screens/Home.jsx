@@ -7,10 +7,12 @@ import { dueLabel } from '../lib/udhar.js';
 import { budgetTone, categoryBudgetRows } from './Budget.jsx';
 import { money, fmtDate } from '../lib/format.js';
 import { lockNow } from '../lib/backend.js';
+import { smsSupported } from '../lib/native.js';
 import { ask } from '../lib/ask.js';
 
 export default function Home() {
-  const { user, expenses, dues, setLoanTab, autoBk, settings, catMap, openAdd, openSms, setTab, setTxFilter, pending } = useApp();
+  const { user, expenses, dues, setLoanTab, autoBk, settings, catMap, openAdd, openSms, scanInbox, smsPerm, setTab, setTxFilter, pending } = useApp();
+  const autoSms = smsSupported() && settings.smsAuto;
   const m = useMemo(() => monthStats(expenses), [expenses]);
   const last = useMemo(() => { const d = new Date(); return monthStats(expenses, new Date(d.getFullYear(), d.getMonth() - 1, 15).getTime()); }, [expenses]);
   const cats = useMemo(() => byCategory(m.list, catMap), [m, catMap]);
@@ -72,10 +74,14 @@ export default function Home() {
       <div className="card" key="sms">
         <div className="row between">
           <div>
-            <h3>📋 Add from bank SMS</h3>
-            <div className="small muted">{pending.length ? `${pending.length} transaction(s) to review` : 'Copy a bank or UPI SMS and paste it here'}</div>
+            <h3>{autoSms ? '📩 Bank SMS' : '📋 Add from bank SMS'}</h3>
+            <div className="small muted">{pending.length ? `${pending.length} transaction(s) to review`
+              : autoSms ? (smsPerm === 'granted' ? 'New bank SMS are added automatically when you open the app' : 'Tap Read SMS and allow SMS access once')
+              : 'Copy a bank or UPI SMS and paste it here'}</div>
           </div>
-          <button className="btn primary" onClick={openSms}>{pending.length ? 'Review' : 'Paste SMS'}</button>
+          {pending.length ? <button className="btn primary" onClick={openSms}>Review</button>
+            : autoSms ? <button className="btn primary" onClick={scanInbox}>Read SMS</button>
+            : <button className="btn primary" onClick={openSms}>Paste SMS</button>}
         </div>
       </div>
     ),

@@ -171,3 +171,5 @@ table.sched th:first-child, table.sched td:first-child { text-align: left; }
 
 html, body { overflow-x: hidden; }
 .main > * { min-width: 0; }
+
+.note { background: color-mix(in srgb, var(--accent) 10%, transparent); border-radius: 10px; padding: 10px 12px; }

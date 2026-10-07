@@ -9,7 +9,7 @@ For **personal use by friends and family**. Every person's data stays **on their
 | Fully offline (laptop) | `kharcha.html` single file — double-click to open | That browser on that laptop |
 
 ## Features
-- **Expenses** — add by hand, or **paste bank/UPI/card SMS** (one or many): amount, merchant, date, mode and category are filled in. No SMS permission.
+- **Expenses** — add by hand, **auto SMS reader** on Android (reads new bank/UPI/card SMS on app open, after the user allows SMS access; on-device only), or **paste SMS** on laptop/iPhone.
 - **Budget** — Monthly budget and/or Category budgets, safe-to-spend per day, 6-month history, ✨ suggest from past spend.
 - **EMI/Udhar** — EMI calculator, schedule, balance, Mark paid; Udhar given/taken with part payments.
 - **Reminders** — a day before + on due date + while overdue, for EMIs and Udhar (to pay and to collect). Android: works even when the app is closed.

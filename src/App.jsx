@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { onUser, createStore, migrateOldDemoData, keepDataPersistent } from './lib/backend.js';
 import { DEFAULT_CATEGORIES, guessCategory } from './lib/categories.js';
 import { setCurrency } from './lib/format.js';
-import { isNative } from './lib/native.js';
+import { isNative, smsSupported, smsPermission, requestSmsPermission, readInboxSms } from './lib/native.js';
+import { parseMany } from './lib/smsParser.js';
+import { pickNew, scanSince } from './lib/smsAuto.js';
 import { AppCtx } from './components/ui.jsx';
 import Login from './screens/Login.jsx';
 import Home from './screens/Home.jsx';
@@ -52,6 +54,10 @@ export const DEFAULT_SETTINGS = {
   ignoredSms: [],
   lastBackup: 0,
   autoBackup: true,
+  smsAuto: true,      // Android: read new bank SMS from the inbox when the app opens (needs SMS permission)
+  smsReview: false,   // false = add automatically, true = show them for review first
+  smsFirstDays: 30,   // first scan looks this many days back
+  smsLastScan: 0,
 };
 
 export default function App() {
@@ -136,8 +142,60 @@ function Main({ user }) {
     return fresh.length;
   }, [known, toTxn]);
 
-  // Bank SMS are added by the user pasting them (no SMS permission needed)
-  const scanInbox = useCallback(() => setSheet({ type: 'sms' }), []);
+  /* ---------- Auto SMS reader (Android) ---------- */
+  // Reads bank SMS from the phone's inbox when the app opens / comes back to the screen.
+  // Messages are parsed on the phone; only amount, merchant, mode, account last-4 and date are saved.
+  const [smsPerm, setSmsPerm] = useState(smsSupported() ? 'checking' : 'unsupported');
+  const scanning = useRef(false);
+  const readSms = useCallback(async ({ manual = false } = {}) => {
+    if (!smsSupported() || scanning.current) return null;
+    let perm = await smsPermission();
+    if (perm !== 'granted' && manual) perm = await requestSmsPermission();
+    setSmsPerm(perm);
+    if (perm !== 'granted') {
+      if (manual) notify('SMS permission not given — see Customize › Auto SMS reader');
+      return null;
+    }
+    scanning.current = true;
+    try {
+      const now = Date.now();
+      const msgs = await readInboxSms(scanSince(settings.smsLastScan, settings.smsFirstDays, now));
+      const fresh = pickNew(parseMany(msgs), [...expenses, ...pending], known);
+      if (fresh.length && (settings.smsReview || manual === 'review')) {
+        await ingest(fresh);
+        notify(`📩 ${fresh.length} new bank SMS — tap Review on Home`);
+      } else if (fresh.length) {
+        await store.bulkAdd('expenses', fresh.map(toTxn));
+        notify(`📩 Added ${fresh.length} expense(s) from SMS`);
+      } else if (manual) notify('No new bank SMS');
+      await saveSettings({ smsLastScan: now });
+      return fresh.length;
+    } catch (e) {
+      if (manual) notify('Could not read SMS: ' + (e?.message || e));
+      return null;
+    } finally { scanning.current = false; }
+  }, [settings.smsLastScan, settings.smsFirstDays, settings.smsReview, expenses, pending, known, ingest, toTxn, store, saveSettings, notify]);
+
+  const readSmsRef = useRef(readSms);
+  readSmsRef.current = readSms;
+  useEffect(() => {
+    if (raw === undefined || !smsSupported()) return;
+    smsPermission().then(setSmsPerm);
+    if (!settings.smsAuto) return;
+    const t = setTimeout(() => readSmsRef.current(), 1500);
+    const onVis = () => { if (document.visibilityState === 'visible') setTimeout(() => readSmsRef.current(), 600); };
+    document.addEventListener('visibilitychange', onVis);
+    return () => { clearTimeout(t); document.removeEventListener('visibilitychange', onVis); };
+  }, [raw === undefined, settings.smsAuto]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Home "SMS" button: Android with permission → read inbox; otherwise open the paste sheet.
+  const scanInbox = useCallback(async () => {
+    if (smsSupported() && settings.smsAuto) {
+      const n = await readSms({ manual: true });
+      if (n !== null) return;
+    }
+    setSheet({ type: 'sms' });
+  }, [readSms, settings.smsAuto]);
 
   /* ---------- Daily auto-backup to a device folder ---------- */
   const [autoBk, setAutoBk] = useState(() => ({ status: 'idle', ...readMeta() }));
@@ -176,7 +234,7 @@ function Main({ user }) {
     user, store, expenses, loans, udhar, dues, autoBk, backupNow, settings, saveSettings, catMap, notify, setTab, loanTab, setLoanTab,
     openAdd: (data) => setSheet({ type: 'add', data }),
     openSms: () => setSheet({ type: 'sms' }),
-    scanInbox, pending, setPending, ingest, txFilter, setTxFilter,
+    scanInbox, readSms, smsPerm, setSmsPerm, pending, setPending, ingest, txFilter, setTxFilter,
   };
 
   const navItems = settings.nav.filter((k) => SCREENS[k] && (!settings.hiddenNav.includes(k) || k === 'settings'));

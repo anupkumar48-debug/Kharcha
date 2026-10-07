@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Sheet, useApp, Empty } from '../components/ui.jsx';
 import { parseMany } from '../lib/smsParser.js';
 import { money, fmtDate } from '../lib/format.js';
-import { readClipboard } from '../lib/native.js';
+import { readClipboard, smsSupported } from '../lib/native.js';
 
 const SAMPLE = `Rs.450.00 debited from A/c XX1234 on 05-10-26 to VPA swiggy@icici (UPI Ref No 627812345678).
 
@@ -11,10 +11,16 @@ INR 2,500.00 spent on HDFC Bank Card XX4321 at AMAZON on 2026-10-05. Avl Lmt: IN
 Rs 15,000.00 credited to your A/c XX7788 by NEFT from ACME CORP. Avl Bal Rs 45,210.55`;
 
 export default function SmsImport({ onClose }) {
-  const { pending, setPending, ingest, store, settings, saveSettings, catMap, notify } = useApp();
+  const { pending, setPending, ingest, store, settings, saveSettings, catMap, notify, readSms } = useApp();
   const [text, setText] = useState('');
   const [sel, setSel] = useState(() => new Set(pending.map((p) => p.id)));
   const [busy, setBusy] = useState(false);
+  // select newly found items (e.g. after "Read new SMS from inbox")
+  const seenIds = useRef(new Set(pending.map((p) => p.id)));
+  useEffect(() => {
+    const add = pending.filter((p) => !seenIds.current.has(p.id)).map((p) => p.id);
+    if (add.length) { add.forEach((id) => seenIds.current.add(id)); setSel((s) => new Set([...s, ...add])); }
+  }, [pending]);
 
   const parse = async () => {
     const parsed = parseMany(text);
@@ -48,6 +54,9 @@ export default function SmsImport({ onClose }) {
 
   return (
     <Sheet title="Add from bank SMS" onClose={onClose}>
+      {smsSupported() && (
+        <button className="btn primary block" style={{ marginBottom: 12 }} onClick={() => readSms({ manual: 'review' })}>📥 Read new SMS from inbox</button>
+      )}
       <ol className="small muted" style={{ margin: '0 0 10px', paddingLeft: 18 }}>
         <li>Open your SMS app and copy a bank / UPI / card message (you can copy several).</li>
         <li>Paste it below and tap <b>Find transactions</b>.</li>
@@ -84,7 +93,7 @@ export default function SmsImport({ onClose }) {
           <button className="btn primary block" style={{ marginTop: 12 }} disabled={busy || !sel.size} onClick={importSel}>Add {sel.size} transaction(s)</button>
         </div>
       )}
-      <p className="xs muted" style={{ marginTop: 12 }}>🔒 Kharcha never reads your messages. Only the amount, merchant, payment mode and date from what you paste are saved.</p>
+      <p className="xs muted" style={{ marginTop: 12 }}>🔒 SMS are read only on this phone. Only the amount, merchant, payment mode, account last 4 digits and date are saved.</p>
     </Sheet>
   );
 }

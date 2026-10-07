@@ -1,5 +1,6 @@
 // Run once after `npx cap add android` (npm run android:init does both).
-// - adds notification + backup-folder permissions to AndroidManifest.xml (no SMS permissions)
+// - adds notification, backup-folder and READ_SMS permissions to AndroidManifest.xml
+// - adds the on-device SMS reader plugin (SmsReaderPlugin.java) and registers it
 // - sets target SDK 36 + release signing
 import fs from 'node:fs';
 import path from 'node:path';
@@ -13,8 +14,8 @@ if (!fs.existsSync(app)) {
 
 const manifestPath = path.join(app, 'src/main/AndroidManifest.xml');
 let m = fs.readFileSync(manifestPath, 'utf8');
-// No SMS permissions: Kharcha only parses SMS text the user pastes.
-const perms = ['android.permission.INTERNET', 'android.permission.POST_NOTIFICATIONS', 'android.permission.RECEIVE_BOOT_COMPLETED'];
+// READ_SMS: family edition reads bank SMS from the inbox on the phone (only after the user allows it).
+const perms = ['android.permission.INTERNET', 'android.permission.POST_NOTIFICATIONS', 'android.permission.RECEIVE_BOOT_COMPLETED', 'android.permission.READ_SMS'];
 for (const p of perms) {
   if (!m.includes(p)) m = m.replace('</manifest>', `    <uses-permission android:name="${p}" />\n</manifest>`);
 }
@@ -25,6 +26,72 @@ if (!m.includes('WRITE_EXTERNAL_STORAGE')) {
 if (!m.includes('requestLegacyExternalStorage')) m = m.replace('<application', '<application android:requestLegacyExternalStorage="true"');
 fs.writeFileSync(manifestPath, m);
 console.log('✓ notification + backup-folder permissions added to AndroidManifest.xml');
+
+// ---- On-device SMS reader plugin ----
+const appId = JSON.parse(fs.readFileSync(path.join(root, 'capacitor.config.json'), 'utf8')).appId || 'com.kharcha.app';
+const javaDir = path.join(app, 'src/main/java', ...appId.split('.'));
+fs.mkdirSync(javaDir, { recursive: true });
+fs.writeFileSync(path.join(javaDir, 'SmsReaderPlugin.java'), `package ${appId};
+
+import android.Manifest;
+import android.database.Cursor;
+import android.net.Uri;
+import com.getcapacitor.JSArray;
+import com.getcapacitor.JSObject;
+import com.getcapacitor.PermissionState;
+import com.getcapacitor.Plugin;
+import com.getcapacitor.PluginCall;
+import com.getcapacitor.PluginMethod;
+import com.getcapacitor.annotation.CapacitorPlugin;
+import com.getcapacitor.annotation.Permission;
+
+// Reads bank SMS from the phone's inbox. Nothing leaves the phone.
+@CapacitorPlugin(name = "SmsReader", permissions = { @Permission(alias = "sms", strings = { Manifest.permission.READ_SMS }) })
+public class SmsReaderPlugin extends Plugin {
+    @PluginMethod
+    public void read(PluginCall call) {
+        if (getPermissionState("sms") != PermissionState.GRANTED) { call.reject("SMS permission not granted"); return; }
+        long since = call.getLong("since", 0L);
+        int limit = call.getInt("limit", 2000);
+        JSArray out = new JSArray();
+        Cursor c = null;
+        try {
+            c = getContext().getContentResolver().query(Uri.parse("content://sms/inbox"),
+                    new String[] { "address", "body", "date" }, "date > ?", new String[] { String.valueOf(since) }, "date DESC");
+            int n = 0;
+            while (c != null && c.moveToNext() && n < limit) {
+                JSObject m = new JSObject();
+                m.put("sender", c.getString(0) == null ? "" : c.getString(0));
+                m.put("body", c.getString(1) == null ? "" : c.getString(1));
+                m.put("date", c.getLong(2));
+                out.put(m);
+                n++;
+            }
+            JSObject r = new JSObject();
+            r.put("messages", out);
+            call.resolve(r);
+        } catch (Exception e) {
+            call.reject("Could not read SMS: " + e.getMessage());
+        } finally {
+            if (c != null) c.close();
+        }
+    }
+}
+`);
+fs.writeFileSync(path.join(javaDir, 'MainActivity.java'), `package ${appId};
+
+import android.os.Bundle;
+import com.getcapacitor.BridgeActivity;
+
+public class MainActivity extends BridgeActivity {
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        registerPlugin(SmsReaderPlugin.class);
+        super.onCreate(savedInstanceState);
+    }
+}
+`);
+console.log('✓ SMS reader plugin added');
 
 // ---- Build settings ----
 // 1) Target Android 16 (API 36)

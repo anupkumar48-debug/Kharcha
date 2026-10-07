@@ -4,7 +4,7 @@ import { SCREENS, WIDGETS, DEFAULT_SETTINGS } from '../App.jsx';
 import { eraseEverything, setPin, lockNow, setProfileName } from '../lib/backend.js';
 import { exportBackup, readBackupFile } from '../lib/backup.js';
 import { autoBackupStatus, chooseBackupFolder, resumeBackupFolder, readLatestNativeBackup } from '../lib/autobackup.js';
-import { isNative } from '../lib/native.js';
+import { isNative, smsSupported, smsPermission, requestSmsPermission } from '../lib/native.js';
 import { uid, fmtDate } from '../lib/format.js';
 import { makeSampleData } from '../lib/sample.js';
 import { ask } from '../lib/ask.js';
@@ -137,6 +137,7 @@ export default function Settings() {
 
       <RemindersCard />
 
+      {smsSupported() && <SmsReaderCard />}
       <AutoBackupCard onRestore={restoreData} />
 
       <div className="card">
@@ -313,6 +314,57 @@ function AutoBackupCard({ onRestore }) {
             </div>
           )}
           {isNative() && <div className="xs muted" style={{ marginTop: 8 }}>This folder stays even if Kharcha is uninstalled. For extra safety, copy it to Google Drive now and then (or use Backup now → Drive).</div>}
+        </>
+      )}
+    </div>
+  );
+}
+
+function SmsReaderCard() {
+  const { settings, saveSettings, smsPerm, setSmsPerm, readSms, notify } = useApp();
+  const granted = smsPerm === 'granted';
+  const allow = async () => {
+    const p = await requestSmsPermission();
+    setSmsPerm(p);
+    if (p === 'granted') { await saveSettings({ smsAuto: true }); readSms({ manual: true }); }
+    else notify('Permission not given — see the steps below');
+  };
+  useEffect(() => { smsPermission().then(setSmsPerm); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <div className="card">
+      <div className="row between" style={{ marginBottom: 6 }}>
+        <h3>📩 Auto SMS reader</h3>
+        <Toggle checked={settings.smsAuto} onChange={(v) => saveSettings({ smsAuto: v })} label="Auto SMS reader" />
+      </div>
+      <div className="small muted">
+        Reads new bank / UPI / card SMS every time you open Kharcha and adds them as expenses. OTPs, offers and reminders are skipped.
+        Messages are read only on this phone — nothing is sent anywhere.
+      </div>
+      <div className="small" style={{ marginTop: 8 }}>
+        Permission: <b>{granted ? '✅ Allowed' : smsPerm === 'checking' ? '…' : '❌ Not allowed'}</b>
+        {settings.smsLastScan ? <span className="muted"> · last read {fmtDate(settings.smsLastScan, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span> : null}
+      </div>
+      {settings.smsAuto && (
+        <>
+          <label className="row between small" style={{ marginTop: 10 }}>
+            <span>Show new SMS for review before adding</span>
+            <Toggle checked={settings.smsReview} onChange={(v) => saveSettings({ smsReview: v })} label="Review before adding" />
+          </label>
+          <div className="row wrap" style={{ marginTop: 10 }}>
+            {!granted && <button className="btn primary" onClick={allow}>Allow SMS access</button>}
+            {granted && <button className="btn primary" onClick={() => readSms({ manual: true })}>Read SMS now</button>}
+            {granted && <button className="btn" onClick={async () => { if (await ask('Read the last 90 days of SMS again? Already added ones are skipped.')) { await saveSettings({ smsLastScan: Date.now() - 90 * 864e5 }); setTimeout(() => readSms({ manual: true }), 300); } }}>Re-read 90 days</button>}
+          </div>
+          {!granted && (
+            <div className="note small" style={{ marginTop: 10 }}>
+              <b>If Android doesn't show the "Allow" popup</b> (Android 13+ blocks SMS access for apps installed from WhatsApp/browser):
+              <ol style={{ margin: '6px 0 0', paddingLeft: 18 }}>
+                <li>Open phone <b>Settings › Apps › Kharcha</b>.</li>
+                <li>Tap <b>⋮</b> (top-right) › <b>Allow restricted settings</b> and confirm with your PIN/fingerprint.</li>
+                <li>Then <b>Permissions › SMS › Allow</b>, come back and tap <b>Read SMS now</b>.</li>
+              </ol>
+            </div>
+          )}
         </>
       )}
     </div>
