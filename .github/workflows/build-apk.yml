@@ -21,14 +21,25 @@ jobs:
   apk:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with: { node-version: 22 }
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with: { distribution: temurin, java-version: 21 }
       - uses: android-actions/setup-android@v3
 
-      - run: npm install
+      - name: Find the app files
+        run: |
+          # Works even if the files were uploaded inside an extra folder (e.g. kharcha/)
+          if [ ! -f package.json ]; then
+            f=$(find . -maxdepth 4 -name package.json -not -path "*/node_modules/*" | head -1)
+            if [ -z "$f" ]; then echo "::error::package.json not found. Upload the CONTENTS of the kharcha folder (src, public, package.json...)."; ls -la; exit 1; fi
+            d=$(dirname "$f"); echo "App files found in $d - moving them up"
+            shopt -s dotglob; cp -r "$d"/* . 
+          fi
+          ls
+
+      - run: npm install --no-audit --no-fund
       - run: npm test
       - run: npm run build
 
