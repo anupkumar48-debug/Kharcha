@@ -69,28 +69,26 @@ jobs:
       - name: Signing key
         env:
           KS: ${{ secrets.KEYSTORE_B64 }}
-          P1: ${{ secrets.KEYSTORE_PASSWORD }}
-          P2: ${{ secrets.KEY_ALIAS }}
-          P3: ${{ secrets.KEY_PASSWORD }}
+          SP: ${{ secrets.KEYSTORE_PASSWORD || secrets.KEY_PASSWORD }}
+          KA: ${{ secrets.KEY_ALIAS || 'kharcha' }}
         run: |
-          miss=""
-          [ -z "$KS" ] && miss="$miss KEYSTORE_B64"
-          [ -z "$P1" ] && miss="$miss KEYSTORE_PASSWORD"
-          [ -z "$P2" ] && miss="$miss KEY_ALIAS"
-          [ -z "$P3" ] && miss="$miss KEY_PASSWORD"
-          if [ -n "$miss" ]; then echo "::error::Missing secret(s):$miss  -> Settings > Secrets and variables > Actions > New repository secret (exact name, value from github-secrets.txt)"; exit 1; fi
-          echo "$KS" | base64 -d > "$RUNNER_TEMP/upload.jks"
+          [ -z "$KS" ] && { echo "::error::Secret KEYSTORE_B64 is missing (Settings > Secrets and variables > Actions)"; exit 1; }
+          [ -z "$SP" ] && { echo "::error::Secret KEYSTORE_PASSWORD is missing (Settings > Secrets and variables > Actions)"; exit 1; }
+          echo "$KS" | tr -d ' \r\n' | base64 -d > "$RUNNER_TEMP/upload.jks" || { echo "::error::KEYSTORE_B64 is not valid - paste the whole long line again, nothing else"; exit 1; }
+          keytool -list -keystore "$RUNNER_TEMP/upload.jks" -storepass "$SP" -alias "$KA" > /dev/null \
+            || { echo "::error::Key check failed: KEYSTORE_PASSWORD or KEY_ALIAS secret value is wrong. Re-paste them from github-secrets.txt"; exit 1; }
+          echo "Signing key OK"
 
       - name: Build signed APK
         working-directory: android
         env:
           KEYSTORE_FILE: ${{ runner.temp }}/upload.jks
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD || secrets.KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS || 'kharcha' }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD || secrets.KEYSTORE_PASSWORD }}
           VERSION_CODE: ${{ github.run_number }}
           VERSION_NAME: 1.0.${{ github.run_number }}
-        run: chmod +x gradlew && ./gradlew assembleRelease && cp app/build/outputs/apk/release/app-release.apk ../Kharcha.apk
+        run: chmod +x gradlew && ./gradlew assembleRelease --stacktrace && cp app/build/outputs/apk/release/app-release.apk ../Kharcha.apk
 
       - name: Publish release with the APK
         uses: softprops/action-gh-release@v2
