@@ -40,21 +40,32 @@ if (fs.existsSync(vars)) {
 const gradlePath = path.join(app, 'build.gradle');
 let g = fs.readFileSync(gradlePath, 'utf8');
 if (!g.includes('KHARCHA_SIGNING')) {
-  g = g.replace(/versionCode\s+\d+/, 'versionCode (System.getenv("VERSION_CODE") ?: "1") as Integer')
-       .replace(/versionName\s+"[^"]*"/, 'versionName System.getenv("VERSION_NAME") ?: "1.0.0"');
-  g = g.replace(/android\s*\{/, `android {
-    // KHARCHA_SIGNING: upload key comes from env vars (never commit the keystore)
+  // Values are worked out BEFORE the android { } block so Gradle always gets a real number/text.
+  const header = `// KHARCHA_SIGNING: version + upload key come from env vars (never commit the keystore)
+def khEnv = { String k -> def v = System.getenv(k); (v != null && v.trim()) ? v.trim() : null }
+def khVersionCode = (khEnv("VERSION_CODE") ?: "1").toInteger()
+def khVersionName = khEnv("VERSION_NAME") ?: "1.0.0"
+def khKeystore = khEnv("KEYSTORE_FILE")
+def khStorePass = khEnv("KEYSTORE_PASSWORD") ?: khEnv("KEY_PASSWORD")
+def khKeyAlias = khEnv("KEY_ALIAS") ?: "kharcha"
+def khKeyPass = khEnv("KEY_PASSWORD") ?: khStorePass
+def khSign = khKeystore != null && khStorePass != null
+`;
+  g = g.replace(/versionCode\s+\d+/, 'versionCode khVersionCode')
+       .replace(/versionName\s+"[^"]*"/, 'versionName khVersionName');
+  g = g.replace(/android\s*\{/, `${header}
+android {
     signingConfigs {
         release {
-            if (System.getenv("KEYSTORE_FILE")) {
-                storeFile file(System.getenv("KEYSTORE_FILE"))
-                storePassword System.getenv("KEYSTORE_PASSWORD")
-                keyAlias System.getenv("KEY_ALIAS")
-                keyPassword System.getenv("KEY_PASSWORD")
+            if (khSign) {
+                storeFile file(khKeystore)
+                storePassword khStorePass
+                keyAlias khKeyAlias
+                keyPassword khKeyPass
             }
         }
     }`);
-  g = g.replace(/buildTypes\s*\{\s*release\s*\{/, 'buildTypes {\n        release {\n            signingConfig signingConfigs.release');
+  g = g.replace(/buildTypes\s*\{\s*release\s*\{/, 'buildTypes {\n        release {\n            if (khSign) { signingConfig signingConfigs.release }');
   fs.writeFileSync(gradlePath, g);
   console.log('✓ release signing + versionCode/versionName from env added');
 }
