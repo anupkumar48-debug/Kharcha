@@ -8,6 +8,7 @@ import { isNative, smsSupported, smsPermission, requestSmsPermission } from '../
 import { uid, fmtDate } from '../lib/format.js';
 import { makeSampleData } from '../lib/sample.js';
 import { ask } from '../lib/ask.js';
+import { exitApp } from '../lib/backButton.js';
 import { reminderPermission, planNotifications } from '../lib/reminders.js';
 
 
@@ -157,6 +158,10 @@ export default function Settings() {
       </div>
 
       <SecurityCard />
+
+      {isNative() && (
+        <button className="btn block" style={{ marginTop: 4 }} onClick={async () => { if (await ask('Exit Kharcha?', 'Exit')) exitApp(); }}>⏻ Exit Kharcha</button>
+      )}
 
       {catEdit && <CategoryForm cat={catEdit} onClose={() => setCatEdit(null)} />}
     </>

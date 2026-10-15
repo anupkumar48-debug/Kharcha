@@ -7,7 +7,7 @@ const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..')
 const nodePaths = [path.join(root, 'node_modules'), '/opt/npm-tools/node_modules'];
 const stub = (f) => path.join(root, 'web-stubs', f);
 const alias = {
-  '@capacitor/core': stub('capacitor.js'), '@capacitor/local-notifications': stub('capacitor.js'), '@capacitor/clipboard': stub('capacitor.js'), '@capacitor/filesystem': stub('capacitor.js'), '@capacitor/share': stub('capacitor.js'),
+  '@capacitor/core': stub('capacitor.js'), '@capacitor/local-notifications': stub('capacitor.js'), '@capacitor/clipboard': stub('capacitor.js'), '@capacitor/filesystem': stub('capacitor.js'), '@capacitor/share': stub('capacitor.js'), '@capacitor/app': stub('capacitor.js'),
 };
 const r = await build({
   entryPoints: [path.join(root, 'src/main.jsx')], bundle: true, minify: true, write: false, format: 'iife',

@@ -5,6 +5,7 @@ import { setCurrency } from './lib/format.js';
 import { isNative, smsSupported, smsPermission, requestSmsPermission, readInboxSms } from './lib/native.js';
 import { parseMany } from './lib/smsParser.js';
 import { pickNew, scanSince } from './lib/smsAuto.js';
+import { listenBack } from './lib/backButton.js';
 import { AppCtx } from './components/ui.jsx';
 import Login from './screens/Login.jsx';
 import Home from './screens/Home.jsx';
@@ -229,6 +230,11 @@ function Main({ user }) {
     });
     return () => { h?.then?.((x) => x.remove()); };
   }, []);
+
+  /* ---------- Android back button: close popup → Home → "Exit Kharcha?" ---------- */
+  const backState = useRef({});
+  backState.current = { tab, goHome: () => setTab('home') };
+  useEffect(() => listenBack(() => backState.current), []);
 
   const ctx = {
     user, store, expenses, loans, udhar, dues, autoBk, backupNow, settings, saveSettings, catMap, notify, setTab, loanTab, setLoanTab,
